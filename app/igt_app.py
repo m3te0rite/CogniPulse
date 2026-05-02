@@ -4,8 +4,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+# try:
+#     CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+# except NameError:
+#     CURRENT_DIR = os.getcwd()
+
+# PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+# if PROJECT_ROOT not in sys.path:
+#     sys.path.append(PROJECT_ROOT)
+
+# from envs import IGTEnv
 # ─────────────────────────────────────────────
-# IGT Environment (unchanged from your code)
+# IGT Environment
 # ─────────────────────────────────────────────
 class IGTEnv():
     def __init__(self,
@@ -51,9 +61,11 @@ class IGTEnv():
         self.arms = dict(enumerate(zip(self.mean_reward, self.std_reward, self.mean_loss, self.std_loss)))
 
 # ─────────────────────────────────────────────
-# Standard Bechara et al. IGT parameters
-# Deck A & C → high reward, high & frequent loss (bad decks)
-# Deck B & D → low reward, high but infrequent loss (good decks)
+# Parameters
+# A: high reward, frequent large loss  → bad
+# B: high reward, rare massive loss    → bad
+# C: low reward, frequent small loss   → good
+# D: low reward, rare large loss       → good
 # ─────────────────────────────────────────────
 DEFAULT_PARAMS = dict(
     mean_reward = np.array([100.0, 100.0, 50.0, 50.0]),
@@ -61,22 +73,24 @@ DEFAULT_PARAMS = dict(
     mean_loss   = np.array([-250.0, -1250.0, -50.0, -250.0]),
     std_loss    = np.array([10.0,   10.0,   10.0,   10.0]),
 )
-MAX_TRIALS  = 100
+MAX_TRIALS        = 100
+BIN_SIZE          = 20
+N_BINS            = MAX_TRIALS // BIN_SIZE
 STARTING_BANKROLL = 2000.0
-DECK_LABELS = ["A", "B", "C", "D"]
-DECK_COLORS = ["#E05C5C", "#5C9BE0", "#E0A85C", "#5CB87A"]
+DECK_LABELS       = ["A", "B", "C", "D"]
+DECK_COLORS       = ["#E05C5C", "#5C9BE0", "#E0A85C", "#5CB87A"]
 
 # ─────────────────────────────────────────────
-# Session state bootstrap
+# Session state
 # ─────────────────────────────────────────────
 def init_state():
     if "env" not in st.session_state:
         env = IGTEnv(**DEFAULT_PARAMS)
         st.session_state.env         = env
         st.session_state.bankroll    = STARTING_BANKROLL
-        st.session_state.history     = []       # list of (trial, deck_label, reward, bankroll)
+        st.session_state.history     = []
         st.session_state.trial       = 0
-        st.session_state.last_result = None     # dict with trial info for the flash card
+        st.session_state.last_result = None
         st.session_state.game_over   = False
 
 def reset_game():
@@ -108,7 +122,7 @@ def pick_deck(arm_idx: int):
         st.session_state.game_over = True
 
 # ─────────────────────────────────────────────
-# Page config & global CSS
+# Page config & CSS
 # ─────────────────────────────────────────────
 st.set_page_config(
     page_title="Iowa Gambling Task",
@@ -126,13 +140,12 @@ html, body, [class*="css"] {
     color: #e8e4dc;
 }
 
-/* ── header ── */
 .igt-title {
     font-family: 'Playfair Display', serif;
     font-size: 2.6rem;
     font-weight: 900;
     letter-spacing: -0.02em;
-    color: #f5f0e8;
+    color: #7EB8F7;
     line-height: 1.1;
     margin-bottom: 0;
 }
@@ -145,8 +158,6 @@ html, body, [class*="css"] {
     margin-top: 4px;
     margin-bottom: 24px;
 }
-
-/* ── bankroll badge ── */
 .bankroll-box {
     background: #1a1a22;
     border: 1px solid #2e2e3a;
@@ -177,45 +188,6 @@ html, body, [class*="css"] {
     margin-left: auto;
     letter-spacing: 0.12em;
 }
-
-/* ── deck buttons ── */
-.deck-row {
-    display: flex;
-    gap: 14px;
-    justify-content: center;
-    margin-bottom: 24px;
-}
-.deck-btn {
-    flex: 1;
-    max-width: 130px;
-    aspect-ratio: 2/3;
-    border-radius: 14px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Playfair Display', serif;
-    font-size: 2.4rem;
-    font-weight: 900;
-    color: #fff;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-    position: relative;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-}
-.deck-btn:hover   { transform: translateY(-5px) scale(1.03); box-shadow: 0 14px 32px rgba(0,0,0,0.55); }
-.deck-btn:active  { transform: translateY(0px) scale(0.98); }
-.deck-btn .deck-sub {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.55rem;
-    letter-spacing: 0.2em;
-    opacity: 0.7;
-    margin-top: 4px;
-    text-transform: uppercase;
-}
-
-/* ── result flash card ── */
 .result-card {
     background: #1a1a22;
     border-radius: 12px;
@@ -234,19 +206,6 @@ html, body, [class*="css"] {
     font-size: 1.5rem; font-weight: 900; color: white;
     flex-shrink: 0;
 }
-.result-value {
-    font-family: 'DM Mono', monospace;
-    font-size: 1.4rem;
-    font-weight: 500;
-}
-.result-desc {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.75rem;
-    color: #7a7468;
-    margin-top: 2px;
-}
-
-/* ── game over banner ── */
 .gameover-banner {
     background: linear-gradient(135deg, #1e1e2e, #2a1a2e);
     border: 1px solid #4a2a5a;
@@ -266,8 +225,6 @@ html, body, [class*="css"] {
     font-size: 1.1rem;
     color: #e8e4dc;
 }
-
-/* ── progress bar ── */
 .progress-wrap {
     background: #1a1a22;
     border-radius: 999px;
@@ -278,11 +235,18 @@ html, body, [class*="css"] {
 .progress-fill {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, #5C9BE0, #5CB87A);
+    background: linear-gradient(90deg, #7EB8F7, #5CB87A);
     transition: width 0.3s ease;
 }
-
-/* Streamlit overrides */
+.section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: #5a5860;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    margin-top: 0px;
+}
 .block-container { max-width: 680px; padding-top: 2rem; }
 div[data-testid="stButton"] button {
     background: transparent;
@@ -296,9 +260,9 @@ div[data-testid="stButton"] button {
     transition: all 0.15s ease;
 }
 div[data-testid="stButton"] button:hover {
-    border-color: #5C9BE0;
-    color: #5C9BE0;
-    background: rgba(92, 155, 224, 0.07);
+    border-color: #7EB8F7;
+    color: #7EB8F7;
+    background: rgba(126, 184, 247, 0.07);
 }
 section[data-testid="stSidebar"] { background: #0d0d10; }
 </style>
@@ -310,29 +274,28 @@ section[data-testid="stSidebar"] { background: #0d0d10; }
 init_state()
 
 # ─────────────────────────────────────────────
-# Sidebar — instructions
+# Sidebar
 # ─────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div style='font-family:"Playfair Display",serif; font-size:1.3rem; font-weight:700; color:#f5f0e8; margin-bottom:8px;'>Instructions</div>
+    <div style='font-family:"Playfair Display",serif; font-size:1.3rem; font-weight:700; color:#7EB8F7; margin-bottom:8px;'>Instructions</div>
     <div style='font-family:"DM Sans",sans-serif; font-size:0.82rem; color:#9a9490; line-height:1.7;'>
     You start with <b style='color:#e8e4dc'>$2,000</b> in play money.<br><br>
     Each round, pick one of the four decks — <b>A, B, C, or D</b>.<br><br>
     Every pick gives you a <b style='color:#5CB87A'>reward</b>. Some picks also carry a <b style='color:#E05C5C'>penalty</b>.<br><br>
     Your goal is to <b style='color:#e8e4dc'>maximize your bankroll</b> over <b>100 trials</b>.<br><br>
-    The decks differ in how often and how severely they penalize you — you'll have to figure out the pattern.
+    The decks differ in how often and how severely they penalize you — figure out the pattern.
     </div>
     """, unsafe_allow_html=True)
-    
+
     st.divider()
-    
-    # Deck selection stats (only shown after game over or with data)
+
     if st.session_state.history:
-        df = pd.DataFrame(st.session_state.history)
-        counts = df["deck"].value_counts().reindex(DECK_LABELS, fill_value=0)
-        st.markdown("<div style='font-family:\"DM Mono\",monospace; font-size:0.65rem; letter-spacing:0.2em; color:#5a5860; text-transform:uppercase; margin-bottom:8px;'>Deck selections</div>", unsafe_allow_html=True)
+        df_side = pd.DataFrame(st.session_state.history)
+        counts  = df_side["deck"].value_counts().reindex(DECK_LABELS, fill_value=0)
+        st.markdown("<div class='section-label'>Deck selections</div>", unsafe_allow_html=True)
         for i, label in enumerate(DECK_LABELS):
-            pct = int(counts[label] / len(df) * 100) if len(df) > 0 else 0
+            pct = int(counts[label] / len(df_side) * 100) if len(df_side) > 0 else 0
             st.markdown(f"""
             <div style='display:flex; align-items:center; gap:8px; margin-bottom:6px;'>
                 <div style='width:22px; height:22px; background:{DECK_COLORS[i]}; border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:"Playfair Display",serif; font-weight:700; font-size:0.8rem; color:white;'>{label}</div>
@@ -344,7 +307,7 @@ with st.sidebar:
             """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
-# Main layout
+# Header
 # ─────────────────────────────────────────────
 st.markdown('<div class="igt-title">Iowa Gambling Task</div>', unsafe_allow_html=True)
 st.markdown('<div class="igt-subtitle">Decision-making under uncertainty</div>', unsafe_allow_html=True)
@@ -378,10 +341,10 @@ if st.session_state.last_result:
     deck_color = DECK_COLORS[r["arm"]]
     net_color  = "#5CB87A" if net >= 0 else "#E05C5C"
 
-    gain_str = f"+${gain:,.0f}"
-    loss_str = f"-${abs(loss):,.0f}" if loss != 0 else "—"
+    gain_str   = f"+${gain:,.0f}"
+    loss_str   = f"-${abs(loss):,.0f}" if loss != 0 else "—"
     loss_color = "#E05C5C" if loss != 0 else "#5a5860"
-    net_str  = f"+${net:,.0f}" if net >= 0 else f"-${abs(net):,.0f}"
+    net_str    = f"+${net:,.0f}" if net >= 0 else f"-${abs(net):,.0f}"
 
     st.markdown(f"""
     <div class="result-card" style="align-items:center; gap:18px;">
@@ -429,7 +392,6 @@ if not st.session_state.game_over:
     cols = st.columns(4, gap="small")
     for i, (label, color) in enumerate(zip(DECK_LABELS, DECK_COLORS)):
         with cols[i]:
-            # Use st.button but style it via injected HTML
             st.markdown(f"""
             <style>
             div[data-testid="column"]:nth-child({i+1}) div[data-testid="stButton"] button {{
@@ -458,15 +420,14 @@ if not st.session_state.game_over:
                 pick_deck(i)
                 st.rerun()
 
-# ── Equity curve chart ──
+# ── Equity curve (live) ──
 if len(st.session_state.history) > 1:
     df = pd.DataFrame(st.session_state.history)
-    
+
     fig, ax = plt.subplots(figsize=(7, 2.8))
     fig.patch.set_facecolor("#0f0f13")
     ax.set_facecolor("#0f0f13")
 
-    # shade above/below start
     ax.axhline(STARTING_BANKROLL, color="#2e2e3a", linewidth=0.8, linestyle="--")
     ax.fill_between(df["trial"], STARTING_BANKROLL, df["bankroll"],
                     where=(df["bankroll"] >= STARTING_BANKROLL),
@@ -475,28 +436,22 @@ if len(st.session_state.history) > 1:
                     where=(df["bankroll"] < STARTING_BANKROLL),
                     color="#E05C5C", alpha=0.12)
 
-    # color segments by gain/loss
     for j in range(len(df) - 1):
         seg_color = "#5CB87A" if df["bankroll"].iloc[j+1] >= STARTING_BANKROLL else "#E05C5C"
         ax.plot(df["trial"].iloc[j:j+2], df["bankroll"].iloc[j:j+2],
                 color=seg_color, linewidth=1.8, solid_capstyle="round")
 
-    # scatter colored by deck
     for arm_idx, color in enumerate(DECK_COLORS):
         sub = df[df["arm"] == arm_idx]
         ax.scatter(sub["trial"], sub["bankroll"], color=color,
                    s=22, zorder=5, alpha=0.85, linewidths=0)
 
     ax.set_xlim(1, max(MAX_TRIALS, df["trial"].max()))
-    ax.tick_params(colors="#5a5860", labelsize=7)
     ax.spines[["top","right","left","bottom"]].set_color("#2e2e3a")
-    ax.yaxis.set_tick_params(color="#2e2e3a")
-    ax.xaxis.set_tick_params(color="#2e2e3a")
     ax.set_xlabel("Trial", color="#5a5860", fontsize=7, labelpad=4)
     ax.set_ylabel("Balance ($)", color="#5a5860", fontsize=7, labelpad=4)
-    ax.tick_params(axis='both', colors='#5a5860')
+    ax.tick_params(axis='both', colors='#5a5860', labelsize=7)
 
-    # legend for decks
     patches = [mpatches.Patch(color=DECK_COLORS[i], label=f"Deck {DECK_LABELS[i]}") for i in range(4)]
     ax.legend(handles=patches, loc="upper left", framealpha=0,
               labelcolor="#9a9490", fontsize=6.5, ncol=4,
@@ -508,32 +463,52 @@ if len(st.session_state.history) > 1:
 
 # ── Controls ──
 st.markdown("<br>", unsafe_allow_html=True)
-col_r, col_s = st.columns([1, 3])
+col_r, _ = st.columns([1, 3])
 with col_r:
     if st.button("↺  New Game", use_container_width=True):
         reset_game()
         st.rerun()
 
-# ── Post-game deck reveal ──
-if st.session_state.game_over and len(st.session_state.history) > 0:
-    st.divider()
+# ═══════════════════════════════════════════════════════
+# POST-GAME ANALYSIS
+# ═══════════════════════════════════════════════════════
+if st.session_state.game_over and len(st.session_state.history) == MAX_TRIALS:
     df = pd.DataFrame(st.session_state.history)
-    st.markdown("""
-    <div style='font-family:"DM Mono",monospace; font-size:0.65rem; letter-spacing:0.2em; color:#5a5860; text-transform:uppercase; margin-bottom:12px;'>
-    Deck reveal
-    </div>
-    """, unsafe_allow_html=True)
-    
+
+    BG         = "#0f0f13"
+    bin_labels = [f"{b*BIN_SIZE+1}–{(b+1)*BIN_SIZE}" for b in range(N_BINS)]
+    x          = np.arange(N_BINS)
+
+    def style_ax(ax):
+        ax.set_facecolor(BG)
+        ax.spines[["top","right","left","bottom"]].set_color("#2e2e3a")
+        ax.tick_params(axis='both', colors='#5a5860', labelsize=7)
+        ax.xaxis.label.set_color('#5a5860')
+        ax.yaxis.label.set_color('#5a5860')
+
+    # compute bin counts once
+    bin_counts = np.zeros((N_BINS, 4), dtype=int)
+    for b in range(N_BINS):
+        chunk = df[(df["trial"] > b * BIN_SIZE) & (df["trial"] <= (b+1) * BIN_SIZE)]
+        for arm_idx in range(4):
+            bin_counts[b, arm_idx] = (chunk["arm"] == arm_idx).sum()
+
+    st.divider()
+    st.markdown("<div class='section-label' style='margin-top:8px;'>Post-game analysis</div>", unsafe_allow_html=True)
+
+    # ── 1. Deck reveal ──────────────────────────────
+    st.markdown("<div class='section-label' style='margin-top:14px;'>Deck reveal</div>", unsafe_allow_html=True)
+
     reveal_rows = [
-        ("A", "Bad", "High reward, frequent heavy penalties. Net negative over time.", DECK_COLORS[0]),
-        ("B", "Bad", "High reward, frequent heavy penalties. Net negative over time.", DECK_COLORS[1]),
-        ("C", "Good", "Low reward, rare heavy penalties. Net positive over time.", DECK_COLORS[2]),
-        ("D", "Good", "Low reward, rare heavy penalties. Net positive over time.", DECK_COLORS[3]),
+        ("A", "Bad",  "High reward, frequent heavy penalties. Net negative over time.",   DECK_COLORS[0]),
+        ("B", "Bad",  "High reward, rare but massive penalties. Net negative over time.", DECK_COLORS[1]),
+        ("C", "Good", "Low reward, frequent small penalties. Net positive over time.",    DECK_COLORS[2]),
+        ("D", "Good", "Low reward, rare large penalties. Net positive over time.",        DECK_COLORS[3]),
     ]
     for deck_label, verdict, desc, color in reveal_rows:
-        sub   = df[df["deck"] == deck_label]
-        count = len(sub)
-        avg   = sub["reward"].mean() if count > 0 else 0
+        sub     = df[df["deck"] == deck_label]
+        count   = len(sub)
+        avg     = sub["reward"].mean() if count > 0 else 0
         v_color = "#5CB87A" if verdict == "Good" else "#E05C5C"
         st.markdown(f"""
         <div style='display:flex; align-items:center; gap:14px; padding:12px 16px; background:#1a1a22; border-radius:10px; margin-bottom:8px; border:1px solid #2e2e3a;'>
@@ -548,3 +523,101 @@ if st.session_state.game_over and len(st.session_state.history) > 0:
             </div>
         </div>
         """, unsafe_allow_html=True)
+
+    # ── 2. Deck selections per bin ──────────────────
+    st.markdown("<div class='section-label' style='margin-top:24px;'>Deck selections · per 20-trial bin</div>", unsafe_allow_html=True)
+
+    fig1, ax1 = plt.subplots(figsize=(7, 2.8))
+    fig1.patch.set_facecolor(BG)
+    w = 0.18
+    for arm_idx in range(4):
+        offset = (arm_idx - 1.5) * w
+        ax1.bar(x + offset, bin_counts[:, arm_idx], width=w,
+                color=DECK_COLORS[arm_idx], alpha=0.88,
+                label=DECK_LABELS[arm_idx], zorder=3)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(bin_labels, fontsize=6.5)
+    ax1.set_ylabel("# picks", fontsize=7)
+    ax1.set_xlabel("Trial bin", fontsize=7)
+    ax1.yaxis.set_major_locator(plt.MaxNLocator(integer=True))
+    ax1.axhline(0, color="#2e2e3a", linewidth=0.6)
+    ax1.grid(axis='y', color='#2e2e3a', linewidth=0.5, zorder=0)
+    ax1.legend(framealpha=0, labelcolor="#9a9490", fontsize=6.5, ncol=4,
+               handlelength=1, loc="upper right")
+    style_ax(ax1)
+    plt.tight_layout(pad=0.5)
+    st.pyplot(fig1, use_container_width=True)
+    plt.close()
+
+    # ── 3. IGT score per bin ────────────────────────
+    st.markdown("""
+    <div style='margin-top:18px;'>
+        <div class='section-label'>IGT score · per 20-trial bin</div>
+        <div style='font-family:"DM Mono",monospace; font-size:0.62rem; color:#5a5860; margin-top:3px; letter-spacing:0.05em;'>
+            Score = Advantageous − Disadvantageous &nbsp;=&nbsp; <span style='color:#5CB87A;'>(C+D)</span> − <span style='color:#E05C5C;'>(A+B)</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    igt_scores = np.array([
+        (bin_counts[b, 2] + bin_counts[b, 3]) - (bin_counts[b, 0] + bin_counts[b, 1])
+        for b in range(N_BINS)
+    ], dtype=float)
+    bar_colors = ["#5CB87A" if s >= 0 else "#E05C5C" for s in igt_scores]
+
+    fig2, ax2 = plt.subplots(figsize=(7, 2.4))
+    fig2.patch.set_facecolor(BG)
+    bars2 = ax2.bar(x, igt_scores, color=bar_colors, alpha=0.88, zorder=3, width=0.55)
+    ax2.axhline(0, color="#7a7468", linewidth=0.8, linestyle="--")
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(bin_labels, fontsize=6.5)
+    ax2.set_ylabel("IGT score", fontsize=7)
+    ax2.set_xlabel("Trial bin", fontsize=7)
+    ax2.grid(axis='y', color='#2e2e3a', linewidth=0.5, zorder=0)
+    for bar, score in zip(bars2, igt_scores):
+        label_y = bar.get_height() + 0.4 if score >= 0 else bar.get_height() - 1.4
+        ax2.text(bar.get_x() + bar.get_width() / 2, label_y,
+                 f"{int(score):+d}", ha='center', va='bottom',
+                 fontsize=6.5, color='#9a9490', fontfamily='monospace')
+    style_ax(ax2)
+    plt.tight_layout(pad=0.5)
+    st.pyplot(fig2, use_container_width=True)
+    plt.close()
+
+    # ── 4. Event / sequence plot ────────────────────
+    st.markdown("<div class='section-label' style='margin-top:18px;'>Trial sequence · red = disadvantageous (A/B) · green = advantageous (C/D)</div>", unsafe_allow_html=True)
+
+    arm_seq   = df["arm"].values
+    trial_seq = np.arange(len(arm_seq))
+    colors_ev = np.where(np.isin(arm_seq, [0, 1]), '#E05C5C', '#5CB87A')
+
+    fig3, ax3 = plt.subplots(figsize=(7, 2.2))
+    fig3.patch.set_facecolor(BG)
+    ax3.scatter(trial_seq, arm_seq, c=colors_ev, s=150, marker='|', linewidths=0.8, zorder=3)
+
+    for b in range(1, N_BINS):
+        ax3.axvline(b * BIN_SIZE - 0.5, color="#2e2e3a", linewidth=0.6, linestyle="--")
+        ax3.text(b * BIN_SIZE - 0.5, 3.65,
+                 f"bin {b+1}", ha='center', va='top',
+                 fontsize=5.5, color='#5a5860', fontfamily='monospace')
+
+    for y in [0.5, 1.5, 2.5]:
+        ax3.axhline(y, color="#1e1e28", linewidth=0.5)
+
+    ax3.set_ylim(-0.6, 4.2)
+    ax3.set_yticks([0, 1, 2, 3])
+    ax3.set_yticklabels(['A', 'B', 'C', 'D'], fontsize=7)
+    ax3.set_xlabel("Trial", fontsize=7, labelpad=4)
+    ax3.set_xlim(-1, MAX_TRIALS)
+    ax3.grid(axis='x', color='#1a1a22', linewidth=0.4, zorder=0)
+
+    leg_patches = [
+        mpatches.Patch(color='#E05C5C', label='Disadvantageous (A/B)'),
+        mpatches.Patch(color='#5CB87A', label='Advantageous (C/D)'),
+    ]
+    ax3.legend(handles=leg_patches, framealpha=0, labelcolor="#9a9490",
+               fontsize=6.5, loc="upper left", handlelength=1)
+    style_ax(ax3)
+    plt.tight_layout(pad=0.5)
+    st.pyplot(fig3, use_container_width=True)
+    plt.close()
