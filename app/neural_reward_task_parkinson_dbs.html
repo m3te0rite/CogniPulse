@@ -1,0 +1,471 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+#app{padding:1.5rem;max-width:680px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+
+.screen{display:none}
+.screen.active{display:block}
+
+.hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:1.25rem}
+.hud-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.hud-label{font-size:11px;color:var(--color-text-tertiary);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.hud-val{font-size:18px;font-weight:500;color:var(--color-text-primary)}
+
+.decks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem}
+.deck{background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:14px 10px;cursor:pointer;transition:transform .12s,border-color .12s;text-align:center;position:relative;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.deck:hover{transform:translateY(-3px);border-color:var(--color-border-primary)}
+.deck.disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
+.deck-label{font-size:13px;font-weight:500;color:var(--color-text-primary)}
+.deck-sublabel{font-size:11px;color:var(--color-text-secondary)}
+.deck-icon{font-size:28px}
+
+.deck.A .deck-icon::before{content:"🔵"}
+.deck.B .deck-icon::before{content:"🟣"}
+.deck.C .deck-icon::before{content:"🟢"}
+.deck.D .deck-icon::before{content:"🟡"}
+
+.feedback-box{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);padding:1rem 1.25rem;margin-bottom:1rem;min-height:90px;display:flex;flex-direction:column;justify-content:center}
+.fb-reward{font-size:20px;font-weight:500;margin-bottom:4px}
+.fb-reward.pos{color:var(--color-text-success)}
+.fb-reward.neg{color:var(--color-text-danger)}
+.fb-signal{font-size:13px;color:var(--color-text-secondary)}
+
+.brain-bar-wrap{margin-bottom:1rem}
+.brain-bar-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:5px;display:flex;justify-content:space-between}
+.brain-bar-track{height:10px;background:var(--color-background-secondary);border-radius:99px;overflow:hidden;border:0.5px solid var(--color-border-tertiary)}
+.brain-bar-fill{height:100%;border-radius:99px;transition:width .4s}
+
+.phase-banner{text-align:center;padding:.5rem;font-size:12px;color:var(--color-text-secondary);border-top:0.5px solid var(--color-border-tertiary);margin-top:.5rem}
+.badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;font-weight:500;margin-right:4px}
+.badge-info{background:var(--color-background-info);color:var(--color-text-info)}
+.badge-warn{background:var(--color-background-warning);color:var(--color-text-warning)}
+.badge-good{background:var(--color-background-success);color:var(--color-text-success)}
+.badge-bad{background:var(--color-background-danger);color:var(--color-text-danger)}
+
+.history-dots{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:1rem}
+.dot{width:12px;height:12px;border-radius:50%;opacity:.85}
+.dot.A{background:#378ADD}
+.dot.B{background:#7F77DD}
+.dot.C{background:#1D9E75}
+.dot.D{background:#BA7517}
+.dot.pos{outline:2px solid var(--color-border-success)}
+.dot.neg{outline:2px solid var(--color-border-danger)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;font-size:14px;cursor:pointer;color:var(--color-text-primary);font-family:var(--font-sans)}
+.btn:hover{background:var(--color-background-secondary)}
+.btn-primary{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info)}
+.btn-primary:hover{opacity:.85}
+
+.results-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:1rem 0}
+.result-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px}
+.result-card h3{font-size:12px;color:var(--color-text-secondary);font-weight:400;margin-bottom:6px}
+.result-card p{font-size:18px;font-weight:500;color:var(--color-text-primary)}
+
+.trend-svg{width:100%;height:80px;margin:8px 0}
+
+.intro-hero{text-align:center;padding:1.5rem 0 1rem}
+.intro-hero h1{font-size:22px;font-weight:500;color:var(--color-text-primary);margin-bottom:.5rem}
+.intro-hero p{font-size:14px;color:var(--color-text-secondary);max-width:480px;margin:0 auto 1.25rem}
+
+.deck-guide{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:1rem 0}
+.dg-card{border-radius:var(--border-radius-md);padding:10px 8px;text-align:center;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.dg-card .dg-name{font-size:12px;font-weight:500;margin-bottom:3px;color:var(--color-text-primary)}
+.dg-card .dg-risk{font-size:11px;color:var(--color-text-secondary)}
+
+.stim-toggle{display:flex;align-items:center;gap:10px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;margin-bottom:1rem;border:0.5px solid var(--color-border-tertiary)}
+.stim-label{font-size:13px;color:var(--color-text-secondary);flex:1}
+.stim-led{width:10px;height:10px;border-radius:50%;background:#888;transition:background .3s}
+.stim-led.on{background:#1D9E75}
+.toggle-sw{position:relative;width:38px;height:20px;cursor:pointer}
+.toggle-sw input{opacity:0;width:0;height:0}
+.toggle-sw .slider{position:absolute;inset:0;background:var(--color-border-secondary);border-radius:99px;transition:.2s}
+.toggle-sw .slider:before{content:"";position:absolute;width:14px;height:14px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s}
+.toggle-sw input:checked+.slider{background:#1D9E75}
+.toggle-sw input:checked+.slider:before{transform:translateX(18px)}
+
+.ml-panel{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 14px;margin-bottom:1rem;border:0.5px solid var(--color-border-tertiary);font-size:12px;color:var(--color-text-secondary)}
+.ml-panel strong{color:var(--color-text-primary);font-weight:500}
+.ml-row{display:flex;justify-content:space-between;margin-bottom:3px}
+
+.progress-bar-wrap{height:6px;background:var(--color-background-secondary);border-radius:99px;margin:6px 0;overflow:hidden}
+.progress-bar-inner{height:100%;border-radius:99px;background:var(--color-background-info);transition:width .3s}
+
+.section-title{font-size:14px;font-weight:500;color:var(--color-text-secondary);margin-bottom:.5rem;margin-top:1rem}
+</style>
+
+<div id="app">
+<h2 class="sr-only">Neural Reward Task — a machine learning game for understanding decision-making in Parkinson's disease with DBS</h2>
+
+<div id="screen-intro" class="screen active">
+  <div class="intro-hero">
+    <div style="font-size:40px;margin-bottom:.75rem">🧠</div>
+    <h1>Neural Reward Task</h1>
+    <p>A decision-making game modelling basal ganglia reward learning — designed to assess the effects of deep brain stimulation on reinforcement learning in Parkinson's disease.</p>
+  </div>
+
+  <div class="deck-guide">
+    <div class="dg-card"><div class="dg-name">🔵 Network A</div><div class="dg-risk">Stable gradient<br><span style="color:var(--color-text-success)">low variance</span></div></div>
+    <div class="dg-card"><div class="dg-name">🟣 Network B</div><div class="dg-risk">High reward<br><span style="color:var(--color-text-danger)">high penalty</span></div></div>
+    <div class="dg-card"><div class="dg-name">🟢 Network C</div><div class="dg-risk">Optimal path<br><span style="color:var(--color-text-success)">best long-run</span></div></div>
+    <div class="dg-card"><div class="dg-name">🟡 Network D</div><div class="dg-risk">Noisy signal<br><span style="color:var(--color-text-warning)">unpredictable</span></div></div>
+  </div>
+
+  <p style="font-size:13px;color:var(--color-text-secondary);margin:.75rem 0">Each turn you select a <strong>neural network</strong> (deck). You receive a dopamine signal (reward) and occasionally a loss. Some networks are better in the long run — your task is to learn which ones. DBS can be toggled on or off to see how stimulation changes your learning strategy.</p>
+
+  <div style="display:flex;gap:10px;margin-top:1rem;justify-content:center">
+    <button class="btn btn-primary" onclick="startGame(60)"><i class="ti ti-player-play" aria-hidden="true"></i> Standard trial (60 draws)</button>
+    <button class="btn" onclick="startGame(100)"><i class="ti ti-activity" aria-hidden="true"></i> Extended trial (100 draws)</button>
+  </div>
+</div>
+
+<div id="screen-game" class="screen">
+  <div class="hud">
+    <div class="hud-card"><div class="hud-label">Reward</div><div class="hud-val" id="hud-reward">0</div></div>
+    <div class="hud-card"><div class="hud-label">Trial</div><div class="hud-val" id="hud-trial">0</div></div>
+    <div class="hud-card"><div class="hud-label">Q-value lead</div><div class="hud-val" id="hud-q">—</div></div>
+    <div class="hud-card"><div class="hud-label">DBS state</div><div class="hud-val" id="hud-dbs">OFF</div></div>
+  </div>
+
+  <div class="stim-toggle">
+    <span class="stim-led" id="stim-led"></span>
+    <span class="stim-label"><strong>Deep Brain Stimulation</strong> — modulates exploration rate (ε) and dopamine gain</span>
+    <label class="toggle-sw"><input type="checkbox" id="dbs-toggle" onchange="toggleDBS()"><span class="slider"></span></label>
+  </div>
+
+  <div class="ml-panel" id="ml-panel">
+    <div class="ml-row"><span><strong>RL agent</strong>: Q-learning, ε-greedy</span><span id="ml-epsilon">ε = 0.30</span></div>
+    <div class="ml-row"><span>α (learning rate)</span><span id="ml-alpha">0.20</span></div>
+    <div class="ml-row"><span>γ (discount)</span><span id="ml-gamma">0.90</span></div>
+    <div class="ml-row" style="margin-top:4px;border-top:0.5px solid var(--color-border-tertiary);padding-top:4px"><span>Estimated Q-values → </span><span id="ml-qvals">A:0 B:0 C:0 D:0</span></div>
+  </div>
+
+  <div class="section-title">Dopamine signal history</div>
+  <div class="history-dots" id="history-dots"></div>
+
+  <div class="brain-bar-wrap">
+    <div class="brain-bar-label"><span>Striatal activation</span><span id="striatum-pct">50%</span></div>
+    <div class="brain-bar-track"><div class="brain-bar-fill" id="striatum-bar" style="width:50%;background:#378ADD"></div></div>
+  </div>
+  <div class="brain-bar-wrap">
+    <div class="brain-bar-label"><span>Dopamine tone</span><span id="da-pct">50%</span></div>
+    <div class="brain-bar-track"><div class="brain-bar-fill" id="da-bar" style="width:50%;background:#1D9E75"></div></div>
+  </div>
+
+  <div class="feedback-box" id="feedback-box">
+    <div style="font-size:13px;color:var(--color-text-tertiary)">Select a neural network below to begin</div>
+  </div>
+
+  <div class="decks">
+    <div class="deck A" onclick="pickDeck('A')"><div class="deck-icon"></div><div class="deck-label">Network A</div><div class="deck-sublabel">Stable</div></div>
+    <div class="deck B" onclick="pickDeck('B')"><div class="deck-icon"></div><div class="deck-label">Network B</div><div class="deck-sublabel">High risk</div></div>
+    <div class="deck C" onclick="pickDeck('C')"><div class="deck-icon"></div><div class="deck-label">Network C</div><div class="deck-sublabel">Optimal</div></div>
+    <div class="deck D" onclick="pickDeck('D')"><div class="deck-icon"></div><div class="deck-label">Network D</div><div class="deck-sublabel">Noisy</div></div>
+  </div>
+
+  <div class="phase-banner" id="phase-banner">Phase 1 of 3 — Exploration</div>
+  <div class="progress-bar-wrap"><div class="progress-bar-inner" id="progress-bar" style="width:0%"></div></div>
+</div>
+
+<div id="screen-results" class="screen">
+  <div style="text-align:center;padding:1.25rem 0 .75rem">
+    <div style="font-size:36px;margin-bottom:.5rem" id="result-emoji">🎯</div>
+    <div style="font-size:20px;font-weight:500;color:var(--color-text-primary)" id="result-title">Trial complete</div>
+    <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px" id="result-sub"></div>
+  </div>
+
+  <div class="results-grid">
+    <div class="result-card"><h3>Total reward</h3><p id="res-total">0</p></div>
+    <div class="result-card"><h3>Optimal picks (C)</h3><p id="res-optimal">0%</p></div>
+    <div class="result-card"><h3>Risky picks (B)</h3><p id="res-risky">0%</p></div>
+    <div class="result-card"><h3>Final ε (exploration)</h3><p id="res-eps">0</p></div>
+  </div>
+
+  <div class="section-title">Q-value convergence</div>
+  <svg id="q-trend-svg" class="trend-svg" viewBox="0 0 600 80" preserveAspectRatio="none"></svg>
+
+  <div class="section-title">DBS effect on learning</div>
+  <div class="ml-panel" id="dbs-summary"></div>
+
+  <div class="section-title">Network selection breakdown</div>
+  <div id="deck-bars" style="margin-bottom:1rem"></div>
+
+  <div class="section-title">Clinical interpretation</div>
+  <div class="ml-panel" id="clinical-interp"></div>
+
+  <div style="display:flex;gap:10px;margin-top:1rem;justify-content:center;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="showScreen('screen-intro')"><i class="ti ti-refresh" aria-hidden="true"></i> New trial</button>
+    <button class="btn" onclick="sendPrompt('Explain the Q-learning model used in this Neural Reward Task and how DBS affects the epsilon-greedy exploration strategy in Parkinson\'s disease patients') ">Learn about the ML model ↗</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const DECKS = {
+  A: { reward: 50, penalty: -25, penaltyFreq: 0.3, label:"Stable gradient" },
+  B: { reward: 100, penalty: -150, penaltyFreq: 0.5, label:"High risk/reward" },
+  C: { reward: 50, penalty: -25, penaltyFreq: 0.1, label:"Optimal path" },
+  D: { reward: 50, penalty: -25, penaltyFreq: 0.4, label:"Noisy signal" }
+};
+
+let state = {};
+
+function initState(totalTrials) {
+  state = {
+    totalTrials,
+    trial: 0,
+    totalReward: 0,
+    dbsOn: false,
+    eps: 0.30,
+    alpha: 0.20,
+    gamma: 0.90,
+    Q: {A:0, B:0, C:0, D:0},
+    history: [],
+    deckCounts: {A:0,B:0,C:0,D:0},
+    qHistory: [],
+    striatum: 50,
+    daTone: 50,
+    dbsOnTrials: 0,
+    dbsOffTrials: 0,
+    rewardWithDbs: 0,
+    rewardWithoutDbs: 0
+  };
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startGame(n) {
+  initState(n);
+  document.getElementById('dbs-toggle').checked = false;
+  updateDBSUI();
+  updateHUD();
+  document.getElementById('history-dots').innerHTML = '';
+  document.getElementById('feedback-box').innerHTML = '<div style="font-size:13px;color:var(--color-text-tertiary)">Select a neural network below to begin</div>';
+  showScreen('screen-game');
+  updateMLPanel();
+  updateBars();
+}
+
+function toggleDBS() {
+  state.dbsOn = document.getElementById('dbs-toggle').checked;
+  updateDBSUI();
+  updateMLPanel();
+}
+
+function updateDBSUI() {
+  const on = state.dbsOn;
+  document.getElementById('stim-led').className = 'stim-led' + (on ? ' on' : '');
+  document.getElementById('hud-dbs').textContent = on ? 'ON' : 'OFF';
+  document.getElementById('hud-dbs').style.color = on ? 'var(--color-text-success)' : 'var(--color-text-secondary)';
+}
+
+function getEpsilon() {
+  if (state.dbsOn) return Math.max(0.05, state.eps * 1.35);
+  return state.eps;
+}
+
+function getAlpha() {
+  if (state.dbsOn) return Math.min(0.5, state.alpha * 1.2);
+  return state.alpha;
+}
+
+function pickDeck(deck) {
+  if (state.trial >= state.totalTrials) return;
+  state.trial++;
+  state.deckCounts[deck]++;
+
+  const d = DECKS[deck];
+  const hasPenalty = Math.random() < d.penaltyFreq;
+  const baseReward = d.reward;
+  const penalty = hasPenalty ? d.penalty : 0;
+  const daGain = state.dbsOn ? 1.2 : 1.0;
+  const netReward = Math.round((baseReward + penalty) * daGain);
+
+  state.totalReward += netReward;
+  if (state.dbsOn) { state.dbsOnTrials++; state.rewardWithDbs += netReward; }
+  else { state.dbsOffTrials++; state.rewardWithoutDbs += netReward; }
+
+  const alpha = getAlpha();
+  const oldQ = state.Q[deck];
+  const maxNextQ = Math.max(...Object.values(state.Q));
+  state.Q[deck] = oldQ + alpha * (netReward + state.gamma * maxNextQ - oldQ);
+
+  const decay = state.dbsOn ? 0.985 : 0.992;
+  state.eps = Math.max(0.04, state.eps * decay);
+  state.alpha = Math.max(0.05, state.alpha * 0.999);
+
+  state.striatum = Math.min(100, Math.max(10, state.striatum + (netReward > 0 ? 8 : -5) * (state.dbsOn ? 1.3 : 1)));
+  state.daTone = Math.min(100, Math.max(10, state.daTone + (netReward > 0 ? 6 : -4) * (state.dbsOn ? 1.2 : 1)));
+
+  state.history.push({deck, netReward, pos: netReward > 0, dbsOn: state.dbsOn});
+  state.qHistory.push({...state.Q});
+
+  updateHUD();
+  updateMLPanel();
+  updateBars();
+  updateFeedback(deck, baseReward, penalty, netReward, hasPenalty, daGain);
+  addHistoryDot(deck, netReward > 0);
+  updatePhase();
+  updateProgress();
+
+  if (state.trial >= state.totalTrials) {
+    setTimeout(showResults, 800);
+  }
+}
+
+function updateHUD() {
+  document.getElementById('hud-reward').textContent = state.totalReward;
+  document.getElementById('hud-trial').textContent = state.trial + '/' + state.totalTrials;
+  const best = Object.entries(state.Q).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('hud-q').textContent = best[0] + ':' + Math.round(best[1]);
+}
+
+function updateMLPanel() {
+  const eps = getEpsilon();
+  document.getElementById('ml-epsilon').textContent = 'ε = ' + eps.toFixed(2) + (state.dbsOn ? ' ↑ DBS' : '');
+  document.getElementById('ml-alpha').textContent = getAlpha().toFixed(3);
+  document.getElementById('ml-gamma').textContent = state.gamma.toFixed(2);
+  document.getElementById('ml-qvals').textContent =
+    Object.entries(state.Q).map(([k,v])=>k+':'+Math.round(v)).join(' ');
+}
+
+function updateBars() {
+  const s = Math.round(state.striatum);
+  const d = Math.round(state.daTone);
+  document.getElementById('striatum-bar').style.width = s + '%';
+  document.getElementById('striatum-pct').textContent = s + '%';
+  document.getElementById('da-bar').style.width = d + '%';
+  document.getElementById('da-pct').textContent = d + '%';
+  document.getElementById('striatum-bar').style.background = s > 60 ? '#1D9E75' : s > 35 ? '#378ADD' : '#D85A30';
+  document.getElementById('da-bar').style.background = d > 60 ? '#1D9E75' : d > 35 ? '#BA7517' : '#D85A30';
+}
+
+function updateFeedback(deck, base, penalty, net, hasPenalty, daGain) {
+  const pos = net > 0;
+  let html = '';
+  html += `<div class="fb-reward ${pos ? 'pos' : 'neg'}">${pos ? '▲' : '▼'} ${net > 0 ? '+' : ''}${net} dopamine signal</div>`;
+  html += `<div class="fb-signal">`;
+  html += `<span class="badge badge-info">Network ${deck}</span>`;
+  html += `Reward: +${base}`;
+  if (hasPenalty) html += ` &nbsp;|&nbsp; Loss: ${penalty}`;
+  if (state.dbsOn) html += ` &nbsp;|&nbsp; <span class="badge badge-good">DBS ×${daGain.toFixed(1)}</span>`;
+  html += `<br>Q[${deck}] updated → <strong>${Math.round(state.Q[deck])}</strong>`;
+  html += ` &nbsp;|&nbsp; ε = ${state.eps.toFixed(3)}`;
+  html += `</div>`;
+  document.getElementById('feedback-box').innerHTML = html;
+}
+
+function addHistoryDot(deck, pos) {
+  const d = document.createElement('div');
+  d.className = `dot ${deck} ${pos ? 'pos' : 'neg'}`;
+  d.title = `Trial ${state.trial}: ${deck} ${pos ? '+' : '-'}`;
+  document.getElementById('history-dots').appendChild(d);
+}
+
+function updatePhase() {
+  const pct = state.trial / state.totalTrials;
+  let phase, label;
+  if (pct < 0.33) { phase=1; label='Exploration phase'; }
+  else if (pct < 0.66) { phase=2; label='Consolidation phase'; }
+  else { phase=3; label='Exploitation phase'; }
+  document.getElementById('phase-banner').textContent = `Phase ${phase} of 3 — ${label}`;
+}
+
+function updateProgress() {
+  const pct = (state.trial / state.totalTrials) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function showResults() {
+  showScreen('screen-results');
+
+  const totalPicks = state.totalTrials;
+  const optPct = Math.round((state.deckCounts.C / totalPicks) * 100);
+  const riskPct = Math.round((state.deckCounts.B / totalPicks) * 100);
+
+  document.getElementById('res-total').textContent = state.totalReward;
+  document.getElementById('res-optimal').textContent = optPct + '%';
+  document.getElementById('res-risky').textContent = riskPct + '%';
+  document.getElementById('res-eps').textContent = state.eps.toFixed(3);
+
+  let emoji = '🎯', title = '', sub = '';
+  if (optPct >= 45) { emoji='🏆'; title='Excellent decision-making'; sub='Strong Q-learning convergence on the optimal network — consistent with healthy basal ganglia function.'; }
+  else if (riskPct >= 45) { emoji='⚠️'; title='High-risk bias detected'; sub='Frequent selection of Network B mirrors impulsive choice patterns observed in DBS-on states at subthalamic nucleus.'; }
+  else if (state.totalReward < 0) { emoji='🔴'; title='Net loss — exploration deficit'; sub='Possible under-exploitation of learned Q-values, resembling Parkinsonian reward-learning impairment.'; }
+  else { emoji='📊'; title='Mixed strategy'; sub='Moderate learning curve — consistent with transitional reinforcement learning under dopamine dysregulation.'; }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-sub').textContent = sub;
+
+  drawQTrend();
+  drawDeckBars();
+
+  const avgDbs = state.dbsOnTrials > 0 ? Math.round(state.rewardWithDbs / state.dbsOnTrials) : 'N/A';
+  const avgNoDbs = state.dbsOffTrials > 0 ? Math.round(state.rewardWithoutDbs / state.dbsOffTrials) : 'N/A';
+  document.getElementById('dbs-summary').innerHTML =
+    `<div class="ml-row"><span>Avg reward per trial — DBS ON</span><span><strong>${avgDbs}</strong></span></div>` +
+    `<div class="ml-row"><span>Avg reward per trial — DBS OFF</span><span><strong>${avgNoDbs}</strong></span></div>` +
+    `<div class="ml-row"><span>DBS trials</span><span>${state.dbsOnTrials} / ${state.totalTrials}</span></div>` +
+    `<div class="ml-row"><span>DBS effect on ε (exploration)</span><span>+35% boost while ON</span></div>`;
+
+  let interp = '';
+  if (state.dbsOnTrials === 0) {
+    interp = '<div class="ml-row"><span>DBS was not used. Baseline (off-medication) profile captured.</span></div>';
+  } else if (optPct >= 40 && state.dbsOnTrials > 20) {
+    interp = '<div class="ml-row"><span>DBS-on learning curve</span><span class="badge badge-good">Facilitated</span></div><div class="ml-row"><span>Pattern consistent with STN-DBS improving reward prediction error signalling in the striato-frontal loop.</span></div>';
+  } else if (riskPct >= 40 && state.dbsOnTrials > 20) {
+    interp = '<div class="ml-row"><span>Risk-taking bias</span><span class="badge badge-warn">Elevated</span></div><div class="ml-row"><span>Elevated ε during DBS increased exploration, consistent with STN-DBS-induced impulsivity reported in Castrioto et al. (2014).</span></div>';
+  } else {
+    interp = '<div class="ml-row"><span>Mixed DBS effect — further trials recommended to distinguish exploration from noise sensitivity.</span></div>';
+  }
+  document.getElementById('clinical-interp').innerHTML = interp;
+}
+
+function drawQTrend() {
+  const svg = document.getElementById('q-trend-svg');
+  const h = state.qHistory;
+  if (h.length < 2) { svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="var(--color-text-tertiary)" font-size="12">Not enough data</text>'; return; }
+  const keys = ['A','B','C','D'];
+  const colors = {A:'#378ADD',B:'#7F77DD',C:'#1D9E75',D:'#BA7517'};
+  const allVals = h.flatMap(q => keys.map(k => q[k]));
+  const minV = Math.min(...allVals) - 5;
+  const maxV = Math.max(...allVals) + 5;
+  const W = 600, H = 80;
+  let paths = '';
+  keys.forEach(k => {
+    const pts = h.map((q, i) => {
+      const x = (i / (h.length - 1)) * W;
+      const y = H - ((q[k] - minV) / (maxV - minV)) * H;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    paths += `<polyline points="${pts}" fill="none" stroke="${colors[k]}" stroke-width="1.5" opacity="0.85"/>`;
+  });
+  let legend = '';
+  keys.forEach((k,i) => {
+    legend += `<text x="${10+i*70}" y="75" fill="${colors[k]}" font-size="10">${k}: ${DECKS[k].label.split(' ')[0]}</text>`;
+  });
+  svg.innerHTML = paths + legend;
+}
+
+function drawDeckBars() {
+  const container = document.getElementById('deck-bars');
+  const labels = {A:'Network A — Stable',B:'Network B — High risk',C:'Network C — Optimal',D:'Network D — Noisy'};
+  const colors = {A:'#378ADD',B:'#7F77DD',C:'#1D9E75',D:'#BA7517'};
+  let html = '';
+  ['A','B','C','D'].forEach(k => {
+    const pct = Math.round((state.deckCounts[k] / state.totalTrials) * 100);
+    html += `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:var(--color-text-secondary)"><span>${labels[k]}</span><span>${pct}%</span></div>
+      <div style="height:8px;background:var(--color-background-secondary);border-radius:99px;overflow:hidden;border:0.5px solid var(--color-border-tertiary)">
+        <div style="width:${pct}%;height:100%;border-radius:99px;background:${colors[k]};transition:width .4s"></div>
+      </div></div>`;
+  });
+  container.innerHTML = html;
+}
+</script>
