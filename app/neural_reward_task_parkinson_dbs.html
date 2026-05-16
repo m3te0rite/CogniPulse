@@ -1,7 +1,31 @@
 
 <style>
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --color-background-primary: #0f172a;
+  --color-background-secondary: #1e293b;
+  --color-background-info: rgba(56, 189, 248, 0.15);
+  --color-background-warning: rgba(251, 191, 36, 0.15);
+  --color-background-success: rgba(52, 211, 153, 0.15);
+  --color-background-danger: rgba(248, 113, 113, 0.15);
+  --color-border-primary: #475569;
+  --color-border-secondary: #334155;
+  --color-border-tertiary: #1e293b;
+  --color-border-info: rgba(56, 189, 248, 0.3);
+  --color-border-success: rgba(52, 211, 153, 0.3);
+  --color-border-danger: rgba(248, 113, 113, 0.3);
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-tertiary: #94a3b8;
+  --color-text-info: #38bdf8;
+  --color-text-warning: #fbbf24;
+  --color-text-success: #34d399;
+  --color-text-danger: #f87171;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font-sans)}
+body{font-family:var(--font-sans);background-color:var(--color-background-primary);color:var(--color-text-primary);display:flex;justify-content:center}
 #app{padding:1.5rem;max-width:680px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 
