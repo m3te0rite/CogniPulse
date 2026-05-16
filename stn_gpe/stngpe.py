@@ -13,12 +13,12 @@ def STN_GPe_loop(exp_yaml_path):
     arguments = load_yaml(exp_yaml_path)
     # print(arguments)
     I_strd2_gpe = arguments.get('I_strd2_gpe')
-    lat_strength_stn = arguments.get('lat_strength_stn')
-    lat_strength_gpe = arguments.get('lat_strength_gpe')
-    wsg_strength = arguments.get('wsg_strength')
-    wgs_strength = arguments.get('wgs_strength')
-    I_gpe_ext = arguments.get('I_gpe_ext')
-    I_stn_ext = arguments.get('I_stn_ext')
+    lat_strength_stn = arguments.get('lat_strength_stn') # how stn neuron connect with themseleves
+    lat_strength_gpe = arguments.get('lat_strength_gpe') # how gpe neuron connect with themseleves
+    wsg_strength = arguments.get('wsg_strength') # how stn connects to GPe
+    wgs_strength = arguments.get('wgs_strength') # how GPe connects to stn
+    I_gpe_ext = arguments.get('I_gpe_ext') # external current to GPe
+    I_stn_ext = arguments.get('I_stn_ext') # external current to STN
     binsize = arguments.get('binsize')
     
 
@@ -164,7 +164,6 @@ def STN_GPe_loop(exp_yaml_path):
     else:
         I_DBS = np.zeros(sampling_freq)
     
-    sector = 0
     for i in tqdm(range(time)):
         # SYNAPTIC CURRENT CALCULATION FOR GPe
         #I_gabalat_gpe

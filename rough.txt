@@ -1,0 +1,9 @@
+# Normal, PD and PD-DBS
+
+How to get PD condition?
+Dopamine is lost => increases lateral strength of STN
+Thus in the model if we increase the lateral strength it should go from normal to PD 
+
+Under normal : 1 single neuron: Continuous firing
+
+Under PD: 1 single neuron: Chattering, bursting
